@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Video Editor Sederhana - CapCut Style</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: #0a0f1e;
+            color: white;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+            margin: 0;
+        }
+        .container {
+            background: #1a1f2e;
+            padding: 20px;
+            border-radius: 28px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 {
+            text-align: center;
+            color: #00e5ff;
+            margin: 0 0 5px;
+        }
+        .sub {
+            text-align: center;
+            font-size: 12px;
+            color: #88aaff;
+            margin-bottom: 20px;
+        }
+        .label {
+            font-weight: 600;
+            margin: 12px 0 5px;
+            font-size: 14px;
+            color: #b9e6ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="file"] {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            background: #10131f;
+            border: 1px solid #333;
+            color: white;
+        }
+        input[type="file"]::file-selector-button {
+            background: #00e5ff;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            font-weight: bold;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        textarea {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            background: #10131f;
+            border: 1px solid #333;
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #00e5ff;
+            border: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #000;
+            margin-top: 18px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        .status {
+            background: #0e1120;
+            border-radius: 20px;
+            padding: 10px;
+            text-align: center;
+            font-size: 12px;
+            margin: 15px 0;
+            border-left: 3px solid #00e5ff;
+        }
+        video {
+            width: 100%;
+            border-radius: 16px;
+            margin-top: 10px;
+            background: #000;
+        }
+        .download-btn {
+            display: inline-block;
+            width: 100%;
+            background: #22c55e;
+            text-align: center;
+            padding: 12px;
+            border-radius: 40px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .row button {
+            margin: 0;
+            flex: 1;
+            background: #252c40;
+            color: white;
+        }
+        .row button.active {
+            background: #00e5ff;
+            color: #000;
+        }
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-option.active {
+            border-color: white;
+            transform: scale(1.1);
+        }
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+        .output-area {
+            display: none;
+            margin-top: 20px;
+        }
+        canvas {
+            display: none;
+        }
+        .file-info {
+            font-size: 11px;
+            color: #888;
+            margin-top: 5px;
+        }
+        .warning {
+            background: #2a1e1e;
+            border-left-color: #ff6666;
+        }
+        .success {
+            background: #1e2a1e;
+            border-left-color: #22c55e;
+        }
+        .icon {
+            font-size: 18px;
+        }
+        hr {
+            border-color: #2a2f3e;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎬 Video Editor Sederhana</h2>
+    <div class="sub">Mirip CapCut • Bisa tambah suara sendiri</div>
+
+    <!-- 1. Pilih Video -->
+    <div class="label">📂 1. Pilih Video (Max 60 detik)</div>
+    <input type="file" id="videoInput" accept="video/*">
+    <div class="file-info" id="videoInfo">* Video akan otomatis dimute (suara asli dihilangkan)</div>
+
+    <!-- 2. Pilih Suara (Opsional) -->
+    <div class="label">🎵 2. Tambah Suara/Lagu (Opsional)</div>
+    <input type="file" id="audioInput" accept="audio/*">
+    <div class="file-info" id="audioInfo">* Bisa diisi lagu/audio sendiri, atau kosongkan</div>
+
+    <!-- Kontrol Teks Overlay -->
+    <div class="label">✏️ 3. Teks di Layar</div>
+    <textarea id="overlayText" rows="2" placeholder="Tulis teks di sini..."></textarea>
+
+    <div class="row">
+        <button id="posTop" class="active">Atas</button>
+        <button id="posMid">Tengah</button>
+        <button id="posBottom">Bawah</button>
+    </div>
+
+    <div class="label">🎨 Warna Teks</div>
+    <div class="color-palette">
+        <div class="color-option" style="background: #FFFFFF;" data-color="#FFFFFF"></div>
+        <div class="color-option" style="background: #FFE500;" data-color="#FFE500"></div>
+        <div class="color-option" style="background: #00E5FF;" data-color="#00E5FF"></div>
+        <div class="color-option" style="background: #FF6B6B;" data-color="#FF6B6B"></div>
+        <div class="color-option" style="background: #4ECDC4;" data-color="#4ECDC4"></div>
+        <div class="color-option" style="background: #FF9F43;" data-color="#FF9F43"></div>
+        <div class="color-option" style="background: #A29BFE;" data-color="#A29BFE"></div>
+        <div class="color-option" style="background: #55E6C1;" data-color="#55E6C1"></div>
+    </div>
+    <input type="color" id="customColor" value="#FFFFFF" style="width: 100%; margin-top: 8px; height: 40px; border-radius: 16px; background: #10131f; border: 1px solid #333;">
+
+    <div class="row">
+        <span style="flex:1">🔤 Ukuran:</span>
+        <input type="range" id="textSize" min="24" max="80" value="42" style="flex:2">
+        <span id="sizeVal" style="width: 45px;">42px</span>
+    </div>
+
+    <div class="row">
+        <span style="flex:1">⏱️ Waktu Teks:</span>
+        <input type="number" id="startTime" step="0.5" value="0.5" placeholder="Mulai" style="flex:1">
+        <input type="number" id="endTime" step="0.5" value="5.0" placeholder="Akhir" style="flex:1">
+    </div>
+
+    <hr>
+
+    <!-- Preview Video Asli -->
+    <div class="label">📺 Preview Video (Setelah Dimute)</div>
+    <video id="previewVideo" controls playsinline muted></video>
+
+    <button id="processBtn">✨ PRODUKSI VIDEO (Gabung Teks + Suara) ✨</button>
+    
+    <div id="infoStatus" class="status">📱 Siap. Pilih video (max 60 detik) dan atur teks.</div>
+
+    <div id="outputArea" class="output-area">
+        <video id="outputVideo" controls playsinline></video>
+        <a id="downloadLink" class="download-btn">💾 SIMPAN KE GALERI</a>
+    </div>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+    (function() {
+        // DOM Elements
+        const videoInput = document.getElementById('videoInput');
+        const audioInput = document.getElementById('audioInput');
+        const overlayText = document.getElementById('overlayText');
+        const processBtn = document.getElementById('processBtn');
+        const infoStatus = document.getElementById('infoStatus');
+        const previewVideo = document.getElementById('previewVideo');
+        const outputVideo = document.getElementById('outputVideo');
+        const downloadLink = document.getElementById('downloadLink');
+        const outputArea = document.getElementById('outputArea');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const videoInfo = document.getElementById('videoInfo');
+        const audioInfo = document.getElementById('audioInfo');
+        
+        const posTop = document.getElementById('posTop');
+        const posMid = document.getElementById('posMid');
+        const posBottom = document.getElementById('posBottom');
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
+        const textSize = document.getElementById('textSize');
+        const sizeVal = document.getElementById('sizeVal');
+        const customColor = document.getElementById('customColor');
+        
+        let selectedVideoFile = null;
+        let selectedAudioFile = null;
+        let videoDuration = 0;
+        let textPosition = 'top';
+        let fontSize = 42;
+        let textColor = '#FFFFFF';
+        
+        // ========== WARNA TEKS ==========
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                colorOptions.forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                textColor = opt.dataset.color;
+                customColor.value = textColor;
+            });
+        });
+        customColor.addEventListener('input', (e) => {
+            textColor = e.target.value;
+            colorOptions.forEach(o => o.classList.remove('active'));
+        });
+        
+        // ========== POSISI TEKS ==========
+        posTop.onclick = () => {
+            [posTop, posMid, posBottom].forEach(b => b.classList.remove('active'));
+            posTop.classList.add('active');
+            textPosition = 'top';
+        };
+        posMid.onclick = () => {
+            [posTop, posMid, posBottom].forEach(b => b.classList.remove('active'));
+            posMid.classList.add('active');
+            textPosition = 'middle';
+        };
+        posBottom.onclick = () => {
+            [posTop, posMid, posBottom].forEach(b => b.classList.remove('active'));
+            posBottom.classList.add('active');
+            textPosition = 'bottom';
+        };
+        
+        textSize.oninput = (e) => {
+            fontSize = parseInt(e.target.value);
+            sizeVal.innerText = fontSize + 'px';
+        };
+        
+        // ========== PILIH VIDEO (Max 60 detik) ==========
+        videoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Cek durasi video
+            const url = URL.createObjectURL(file);
+            const tempVideo = document.createElement('video');
+            tempVideo.src = url;
+            tempVideo.onloadedmetadata = () => {
+                const duration = tempVideo.duration;
+                if (duration > 60) {
+                    alert(`⚠️ Video terlalu panjang! Durasi: ${duration.toFixed(1)} detik\nMaksimal 60 detik. Silakan pilih video yang lebih pendek.`);
+                    videoInput.value = '';
+                    selectedVideoFile = null;
+                    previewVideo.src = '';
+                    videoInfo.innerHTML = '❌ Video melebihi 60 detik. Pilih video lain.';
+                    videoInfo.style.color = '#ff6666';
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                
+                selectedVideoFile = file;
+                videoDuration = duration;
+                endTime.value = Math.min(5, duration);
+                videoInfo.innerHTML = `✅ Video: ${file.name.substring(0, 35)} (${duration.toFixed(1)} detik) - Suara akan dimute`;
+                videoInfo.style.color = '#aaf0ff';
+                videoInfo.classList.remove('warning');
+                
+                // Preview video dimute
+                previewVideo.src = url;
+                previewVideo.muted = true;
+                previewVideo.load();
+                
+                URL.revokeObjectURL(url);
+            };
+            tempVideo.onerror = () => {
+                alert('Gagal membaca video');
+                videoInput.value = '';
+            };
+        });
+        
+        // ========== PILIH AUDIO ==========
+        audioInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedAudioFile = file;
+                audioInfo.innerHTML = `✅ Audio: ${file.name.substring(0, 35)}`;
+                audioInfo.style.color = '#aaf0ff';
+            } else {
+                selectedAudioFile = null;
+                audioInfo.innerHTML = '* Bisa diisi lagu/audio sendiri, atau kosongkan';
+                audioInfo.style.color = '#888';
+            }
+        });
+        
+        // ========== PRODUKSI VIDEO (Video Mute + Teks + Audio) ==========
+        async function produceVideo() {
+            if (!selectedVideoFile) {
+                alert("Pilih video dulu!");
+                return null;
+            }
+            
+            infoStatus.innerHTML = "🔄 Memproses video... (sesuai durasi)";
+            processBtn.disabled = true;
+            
+            try {
+                // Siapkan video element (muted = true, suara asli hilang)
+                const videoElem = document.createElement('video');
+                const videoUrl = URL.createObjectURL(selectedVideoFile);
+                videoElem.src = videoUrl;
+                videoElem.muted = true;  // 🔇 SUARA VIDEO ASLI DIHILANGKAN
+                videoElem.playsInline = true;
+                
+                await new Promise((resolve, reject) => {
+                    videoElem.onloadedmetadata = resolve;
+                    videoElem.onerror = reject;
+                    videoElem.load();
+                });
+                
+                const w = videoElem.videoWidth;
+                const h = videoElem.videoHeight;
+                canvas.width = w;
+                canvas.height = h;
+                
+                // Canvas stream untuk visual
+                const canvasStream = canvas.captureStream(30);
+                
+                // Setup audio (jika ada audio tambahan)
+                let audioStream = null;
+                let audioContext = null;
+                let audioElem = null;
+                
+                if (selectedAudioFile) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const audioUrl = URL.createObjectURL(selectedAudioFile);
+                    audioElem = new Audio(audioUrl);
+                    audioElem.loop = false;
+                    
+                    const audioSource = audioContext.createMediaElementSource(audioElem);
+                    const audioDest = audioContext.createMediaStreamDestination();
+                    audioSource.connect(audioDest);
+                    audioSource.connect(audioContext.destination);
+                    audioStream = audioDest.stream;
+                }
+                
+                // Gabungkan stream
+                const combinedStream = new MediaStream();
+                canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+                
+                if (audioStream) {
+                    audioStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+                }
+                
+                const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' });
+                let chunks = [];
+                recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                recorder.start(100);
+                
+                // Parameter teks
+                const teksLayar = overlayText.value.trim();
+                const mulai = Math.max(0, parseFloat(startTime.value) || 0);
+                const selesai = Math.min(videoDuration, parseFloat(endTime.value) || videoDuration);
+                
+                let animationId;
+                const draw = () => {
+                    if (videoElem.paused || videoElem.ended) {
+                        if (!videoElem.ended) {
+                            animationId = requestAnimationFrame(draw);
+                        }
+                        return;
+                    }
+                    
+                    const waktu = videoElem.currentTime;
+                    ctx.drawImage(videoElem, 0, 0, w, h);
+                    
+                    // Gambar teks overlay
+                    if (teksLayar && waktu >= mulai && waktu <= selesai) {
+                        ctx.save();
+                        ctx.shadowColor = "rgba(0,0,0,0.8)";
+                        ctx.shadowBlur = 8;
+                        const ukuran = Math.min(fontSize, h * 0.15);
+                        ctx.font = `bold ${ukuran}px "Segoe UI", "Poppins", system-ui, sans-serif`;
+                        ctx.fillStyle = textColor;
+                        ctx.textAlign = "center";
+                        
+                        let yPos = h * 0.12;
+                        if (textPosition === 'middle') yPos = h / 2;
+                        else if (textPosition === 'bottom') yPos = h - 55;
+                        else yPos = 55;
+                        
+                        // Tambah stroke biar lebih jelas
+                        ctx.shadowBlur = 0;
+                        ctx.strokeStyle = "black";
+                        ctx.lineWidth = 3;
+                        ctx.strokeText(teksLayar, w / 2, yPos);
+                        ctx.fillText(teksLayar, w / 2, yPos);
+                        ctx.restore();
+                    }
+                    
+                    animationId = requestAnimationFrame(draw);
+                };
+                
+                await videoElem.play();
+                draw();
+                
+                // Mainkan audio jika ada
+                if (audioElem && audioContext) {
+                    await audioContext.resume();
+                    audioElem.play();
+                }
+                
+                // Saat video selesai, stop rekaman
+                videoElem.onended = () => {
+                    setTimeout(() => {
+                        if (recorder.state === 'recording') recorder.stop();
+                        if (audioElem) audioElem.pause();
+                    }, 300);
+                };
+                
+                // Hasil
+                const result = await new Promise((resolve) => {
+                    recorder.onstop = () => {
+                        cancelAnimationFrame(animationId);
+                        const blob = new Blob(chunks, { type: 'video/webm' });
+                        const url = URL.createObjectURL(blob);
+                        resolve({ url, blob });
+                    };
+                });
+                
+                // Bersihkan
+                videoElem.pause();
+                videoElem.src = "";
+                URL.revokeObjectURL(videoUrl);
+                if (audioContext) audioContext.close();
+                
+                return result;
+                
+            } catch (err) {
+                console.error(err);
+                infoStatus.innerHTML = "❌ Gagal: " + (err.message || "Coba lagi");
+                return null;
+            } finally {
+                processBtn.disabled = false;
+            }
+        }
+        
+        // Tombol proses
+        processBtn.onclick = async () => {
+            const hasil = await produceVideo();
+            if (hasil) {
+                outputVideo.src = hasil.url;
+                downloadLink.href = hasil.url;
+                downloadLink.download = "video_editor_hasil.webm";
+                outputArea.style.display = "block";
+                infoStatus.innerHTML = "✅ BERHASIL! Video sudah dimute + teks + suara (jika ada). Klik SIMPAN.";
+                infoStatus.classList.add('success');
+                outputArea.scrollIntoView({ behavior: "smooth" });
+            }
+        };
+    })();
+</script>
+</body>
+</html>
